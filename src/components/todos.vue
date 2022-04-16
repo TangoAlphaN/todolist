@@ -2,41 +2,45 @@
   <section class="todoapp">
     <header class="header">
       <h1>TodoList</h1>
-      <input type="text" name="new-todo" placeholder="Ajouter une tache" v-model="newTodo" @keyup.enter="addTodo">
+      <input type="text" class="new-todo" placeholder="Add task" v-model="newTodo" @keyup.enter="addTodo">
     </header>
     <div class="main">
-      <input type="checkbox" class="toggle-all" v-model="allDone">
+      <input type="checkbox" class="toggle-all" id="toggle-all" v-model="allDone">
+      <label for="toggle-all">Tout compléter</label>
       <ul class="todo-list">
-        <li class="todo" v-for="todo in filteredTodos" :key="todo.name" :class="{completed: todo.completed}">
+        <li class="todo" v-for="todo in filteredTodos" :key="todo.name" :class="{completed: todo.completed, editing: todo === editing}">
           <div class="view">
             <input type="checkbox" v-model="todo.completed" class="toggle">
-            <label>{{ todo.name }}</label>
+            <label @dblclick="editTodo(todo)">{{ todo.name }}</label>
             <button class="destroy" @click.prevent="deleteTodo(todo)"></button>
           </div>
+          <input type="text" class="edit" v-model="todo.name" @keyup.enter="doneEdit" @keyup.esc="cancelEdit" v-focus="todo === editing">
         </li>
       </ul>
     </div>
-    <footer class="footer">
-      <span class="todo-count"><strong>{{remaining}}</strong> tâches à faire </span>
+    <footer class="footer" v-show="hasTodos">
+      <span class="todo-count"><strong>{{remaining}}</strong> Tasks to do </span>
       <ul class="filters">
-        <li><a href="#" :class="{selected: filter === 'all'}" @click.prevent="filter = 'all'">Toutes</a></li>
-        <li><a href="#" :class="{selected: filter === 'todo'}" @click.prevent="filter = 'todo'">A faire</a></li>
-        <li><a href="#" :class="{selected: filter === 'done'}" @click.prevent="filter = 'done'">Faites</a></li>
+        <li><a href="#" :class="{selected: filter === 'all'}" @click.prevent="filter = 'all'">All</a></li>
+        <li><a href="#" :class="{selected: filter === 'todo'}" @click.prevent="filter = 'todo'">To do</a></li>
+        <li><a href="#" :class="{selected: filter === 'done'}" @click.prevent="filter = 'done'">Done</a></li>
       </ul>
+      <button class="clear-completed" v-show="remaining" @click.prevent="deleteCompleted">Delete done tasks</button>
     </footer>
   </section>
 </template>
 
 <script>
+  import Vue from "vue";
+
   export default{
     data(){
       return {
-        todos: [{
-          name: 'tâche de test',
-          completed: false,
-        }],
+        todos: [],
         newTodo: '',
         filter: 'all',
+        editing: null,
+        oldTodo:'',
       }
     },
     methods:{
@@ -49,12 +53,26 @@
       },
       deleteTodo(todo){
         this.todos = this.todos.filter(i => i !== todo)
+      },
+      deleteCompleted(){
+        this.todos = this.todos.filter(todo => !todo.completed)
+      },
+      editTodo(todo){
+        this.editing = todo
+        this.oldTodo = todo.name
+      },
+      doneEdit(){
+        this.editing = null
+      },
+      cancelEdit() {
+        this.editing.name = this.oldTodo
+        this.doneEdit()
       }
     },
     computed: {
       allDone: {
         get(){
-          return this.remaining ===0
+          return this.remaining === 0
         },
         set(value){
           this.todos.forEach(todo => todo.completed = value)
@@ -63,12 +81,22 @@
       remaining(){
         return this.todos.filter(todo => !todo.completed).length
       },
+      hasTodos(){
+        return this.todos.length > 0
+      },
       filteredTodos(){
         if(this.filter === 'todo')
           return this.todos.filter(todo => !todo.completed)
         else if(this.filter === 'done')
           return this.todos.filter(todo => todo.completed)
         return this.todos
+      }
+    },
+    directives: {
+      focus(el, value){
+        if(value)
+            // eslint-disable-next-line no-unused-vars
+          Vue.nextTick(_ => el.focus())
       }
     }
   }
